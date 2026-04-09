@@ -3,156 +3,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Digit Game: True Solar Orbit</title>
+    <title>Digit Game: True Solar System Orbit</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
         :root {
             --bg: #030309;
+            --primary: #ff6b35;
             --gold: #ffcc00;
             --gold-dark: #b59410;
+            --tg-blue: #24A1DE;
+            --silver: #e0e0e0;
         }
 
         body {
             margin: 0; background-color: var(--bg);
-            perspective: 1200px; /* Глубина обзора всей страницы */
-            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif; color: white;
+            height: 100vh; display: flex; justify-content: center; align-items: center;
+            overflow: hidden; -webkit-tap-highlight-color: transparent;
         }
 
-        .fx-overlay {
-            position: fixed; inset: 0;
-            display: flex; justify-content: center; align-items: center;
-            background: rgba(0,0,0,0.95);
-            visibility: hidden; opacity: 0; transition: 0.5s;
+        /* --- DEBUG TRIGGER --- */
+        .debug-btn {
+            position: fixed; bottom: 20px; z-index: 9999;
+            background: var(--primary); border: none; color: white;
+            padding: 12px 24px; border-radius: 50px; font-family: 'Orbitron', sans-serif; font-weight: 900;
+            cursor: pointer; box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
         }
-        .fx-overlay.active { visibility: visible; opacity: 1; backdrop-filter: blur(15px); }
+
+        /* --- UI OVERLAY --- */
+        .fx-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; visibility: hidden; transition: all 0.5s ease;
+        }
+        .fx-overlay.active {
+            visibility: visible; background: rgba(0,0,0,0.95); backdrop-filter: blur(15px);
+        }
+
+        .window-container { width: 100%; max-width: 400px; position: relative; }
+
+        .reward-window {
+            text-align: center; display: none;
+            animation: windowIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes windowIn {
+            from { opacity: 0; transform: scale(0.5) translateY(100px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .reward-window.active { display: block; }
 
         /* =========================================
-           ЧЕСТНАЯ 3D СЦЕНА
+           ЧЕСТНАЯ 3D СЦЕНА (СОЛНЕЧНАЯ СИСТЕМА)
            ========================================= */
-        .solar-system {
+        .solar-system-container {
+            width: 100%; height: 260px; margin-bottom: 20px;
             position: relative;
-            width: 400px; height: 300px;
-            display: flex; justify-content: center; align-items: center;
-            /* КРИТИЧЕСКИ ВАЖНО: сохраняем 3D для вложенных элементов */
-            transform-style: preserve-3d;
-            transform: rotateX(15deg); /* Наклон всей системы для вида сверху */
+            /* Создаем перспективу для всей сцены */
+            perspective: 1200px;
         }
 
-        /* ЦЕНТРАЛЬНЫЙ ТИКЕТ (СОЛНЦЕ) */
+        .scene-3d {
+            position: absolute; inset: 0;
+            /* Сохраняем 3D пространство для всех вложенных элементов */
+            transform-style: preserve-3d;
+            /* Слегка наклоняем систему, чтобы орбита стала овальной */
+            transform: rotateX(-12deg); 
+        }
+
+        /* ЦЕНТР (СОЛНЦЕ / БИЛЕТ) */
         .sun-ticket {
             position: absolute;
+            top: 50%; left: 50%;
             width: 180px; height: 110px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-            mask: url('assets/ticket.svg') no-repeat center / contain;
-            -webkit-mask: url('assets/ticket.svg') no-repeat center / contain;
-            filter: drop-shadow(0 0 30px rgba(255, 204, 0, 0.6));
-            /* Он стоит в нулевой точке 3D */
-            transform: translateZ(0); 
-            animation: sunFloat 4s infinite ease-in-out;
+            margin-left: -90px; margin-top: -55px;
+            background-image: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            mask-image: url('assets/ticket.svg'); -webkit-mask-image: url('assets/ticket.svg');
+            mask-repeat: no-repeat; mask-position: center; mask-size: contain;
+            -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; -webkit-mask-size: contain;
+            filter: drop-shadow(0 0 25px rgba(255, 204, 0, 0.6));
+            /* Фиксируем в нулевой координате 3D */
+            transform: translateZ(0);
+            animation: floatSun 4s infinite ease-in-out;
         }
 
-        @keyframes sunFloat {
-            0%, 100% { transform: translateZ(0) translateY(0) rotate(-1deg); }
-            50% { transform: translateZ(10px) translateY(-10px) rotate(2deg); }
+        @keyframes floatSun {
+            0%, 100% { transform: translateZ(0) translateY(0) rotate(-2deg); }
+            50% { transform: translateZ(0) translateY(-10px) rotate(2deg); }
         }
 
-        /* КОНТЕЙНЕР ОРБИТЫ */
-        .orbit-path {
+        /* ОРБИТА С ПЛАНЕТАМИ */
+        .orbit-ring {
             position: absolute;
-            width: 100%; height: 100%;
+            top: 50%; left: 50%;
+            /* Нулевая точка, которая будет вращаться */
+            width: 0; height: 0;
             transform-style: preserve-3d;
-            /* Вращаем сам контейнер орбиты */
-            animation: orbitRotation 12s infinite linear;
+            animation: spinOrbit 12s infinite linear;
         }
 
-        @keyframes orbitRotation {
+        @keyframes spinOrbit {
             from { transform: rotateY(0deg); }
             to { transform: rotateY(360deg); }
         }
 
-        /* NFT (ПЛАНЕТЫ) */
+        /* ОБЕРТКИ ДЛЯ NFT (РАДИУС ОРБИТЫ) */
+        .planet-anchor {
+            position: absolute;
+            transform-style: preserve-3d;
+        }
+
+        /* Раскидываем 4 NFT по кругу (каждые 90 градусов) и отодвигаем на 150px по оси Z */
+        .p1 { transform: rotateY(0deg) translateZ(150px); }
+        .p2 { transform: rotateY(90deg) translateZ(150px); }
+        .p3 { transform: rotateY(180deg) translateZ(150px); }
+        .p4 { transform: rotateY(270deg) translateZ(150px); }
+
+        /* САМИ NFT-КАРТИНКИ */
         .planet-nft {
             position: absolute;
             width: 60px; height: 60px;
-            top: 50%; left: 50%;
-            margin: -30px 0 0 -30px;
-            background-size: contain; background-repeat: no-repeat;
-            transform-style: preserve-3d;
+            margin-left: -30px; margin-top: -30px;
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
+            /* Контр-вращение, чтобы они всегда смотрели лицом на нас */
+            animation: counterSpin 12s infinite linear;
         }
 
-        /* Расставляем планеты по радиусу и компенсируем вращение */
-        .nft-orbit-wrap {
-            position: absolute;
-            inset: 0;
-            transform-style: preserve-3d;
-        }
-
-        /* Магия: мы отодвигаем NFT от центра по оси Z. 
-           Когда родитель (orbit-path) крутится по Y, 
-           Z превращается в X и обратно, создавая круг.
-        */
-        .n1 { transform: rotateY(0deg) translateZ(160px); }
-        .n2 { transform: rotateY(90deg) translateZ(160px); }
-        .n3 { transform: rotateY(180deg) translateZ(160px); }
-        .n4 { transform: rotateY(270deg) translateZ(160px); }
-
-        .icon-nft {
-            width: 60px; height: 60px;
-            background-size: contain;
-            /* Компенсируем вращение орбиты, чтобы картинка всегда смотрела на нас */
-            animation: counterRotate 12s infinite linear;
-        }
-
-        @keyframes counterRotate {
+        @keyframes counterSpin {
             from { transform: rotateY(0deg); }
             to { transform: rotateY(-360deg); }
         }
 
-        /* Блестки (Sparkles) на фоне */
-        .star-sparkle {
-            position: absolute;
-            width: 10px; height: 10px;
-            background: white;
-            mask: url('assets/star.svg') no-repeat center / contain;
-            -webkit-mask: url('assets/star.svg') no-repeat center / contain;
-            animation: sparkle 2s infinite ease-in-out;
+        /* --- БЛЕСТКИ (Sparkles) --- */
+        .sparkle {
+            position: absolute; width: 12px; height: 12px;
+            color: white; opacity: 0;
+            mask-image: url('assets/star.svg'); -webkit-mask-image: url('assets/star.svg');
+            background-color: currentColor;
+            mask-size: contain; -webkit-mask-size: contain;
+            animation: sparklePulse 2s infinite;
+            /* Ставим блестки далеко позади всей сцены */
+            transform: translateZ(-50px);
+        }
+        @keyframes sparklePulse {
+            0%, 100% { transform: translateZ(-50px) scale(0); opacity: 0; }
+            50% { transform: translateZ(-50px) scale(1) rotate(90deg); opacity: 0.6; }
         }
 
-        @keyframes sparkle {
-            0%, 100% { opacity: 0; transform: scale(0); }
-            50% { opacity: 0.8; transform: scale(1.2) rotate(45deg); }
+        /* =========================================
+           ТЕКСТЫ И КНОПКИ
+           ========================================= */
+        .win-title {
+            font-family: 'Orbitron', sans-serif; font-size: 2.2rem;
+            color: var(--gold); margin: 0; text-shadow: 0 0 20px rgba(255, 204, 0, 0.6);
+            letter-spacing: 1px;
+        }
+        .win-desc { color: rgba(255,255,255,0.7); margin: 10px 0 30px; font-size: 1rem; line-height: 1.5; }
+
+        .prize-list {
+            background: rgba(255,255,255,0.03); border-radius: 24px; padding: 20px;
+            text-align: left; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px;
+        }
+        .prize-item { display: flex; align-items: center; gap: 16px; margin-bottom: 15px; }
+        .prize-item:last-child { margin-bottom: 0; }
+        
+        .prize-icon-wrap { width: 40px; height: 40px; flex-shrink: 0; }
+        .icon-svg {
+            display: inline-block; width: 100%; height: 100%; background-color: currentColor;
+            mask-repeat: no-repeat; mask-position: center; mask-size: contain;
+            -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; -webkit-mask-size: contain;
+        }
+        .mask-star { -webkit-mask-image: url('assets/star.svg'); mask-image: url('assets/star.svg'); }
+
+        .prize-info b { display: block; color: var(--gold); font-size: 1.05rem; }
+        .prize-info span { font-size: 0.8rem; color: rgba(255,255,255,0.4); }
+
+        .btn-main {
+            width: 100%; background: none; border: 2px solid var(--gold);
+            color: var(--gold); padding: 16px; border-radius: 16px;
+            font-family: 'Orbitron', sans-serif; font-weight: 900;
+            text-transform: uppercase; cursor: pointer; transition: all 0.2s; letter-spacing: 1px;
+        }
+        .btn-main:active { background: rgba(255,204,0,0.1); transform: scale(0.98); }
+
+        .btn-tg {
+            width: 100%; background: var(--tg-blue); color: white;
+            border: none; padding: 16px; border-radius: 16px; font-family: 'Orbitron', sans-serif; 
+            font-weight: 900; text-decoration: none; display: block; box-sizing: border-box;
+            text-transform: uppercase; text-align: center; letter-spacing: 1px;
+        }
+        .btn-close {
+            margin-top: 20px; background: none; border: none;
+            color: rgba(255,255,255,0.3); text-decoration: underline; cursor: pointer; font-size: 0.9rem;
         }
 
-        /* Остальные стили кнопок и текстов (как в прошлом коде) */
-        .win-title { font-family: 'Orbitron'; color: var(--gold); font-size: 2rem; margin-top: 20px; }
-        .btn-main { border: 2px solid var(--gold); color: var(--gold); padding: 15px 30px; background: none; font-family: 'Orbitron'; cursor: pointer; border-radius: 12px; margin-top: 20px; }
+        /* --- ЧАСТИЦЫ КОНФЕТТИ --- */
+        .p { position: absolute; pointer-events: none; z-index: 2000; color: var(--gold); }
     </style>
 </head>
 <body>
 
-    <div id="fxOverlay" class="fx-overlay active">
-        <div style="text-align: center;">
-            <div class="solar-system">
-                <div class="star-sparkle" style="top:10%; left:20%; animation-delay: 0s;"></div>
-                <div class="star-sparkle" style="top:80%; left:70%; animation-delay: 0.5s;"></div>
-                <div class="star-sparkle" style="top:30%; left:85%; animation-delay: 1.2s;"></div>
+    <button class="debug-btn" onclick="startWinFlow()">TEST FX 🎟️</button>
 
-                <div class="sun-ticket"></div>
+    <div id="fxOverlay" class="fx-overlay">
+        <div class="window-container">
+            
+            <div id="viewWin" class="reward-window">
+                
+                <div class="solar-system-container">
+                    <div class="scene-3d">
+                        
+                        <div class="sparkle" style="top: 20%; left: 15%; animation-delay: 0s;"></div>
+                        <div class="sparkle" style="top: 85%; left: 80%; animation-delay: 0.5s;"></div>
+                        <div class="sparkle" style="top: 50%; left: 85%; animation-delay: 1s;"></div>
+                        <div class="sparkle" style="top: 15%; left: 75%; animation-delay: 1.5s; color: var(--silver);"></div>
 
-                <div class="orbit-path">
-                    <div class="nft-orbit-wrap n1"><div class="icon-nft" style="background-image: url('assets/nft1.svg');"></div></div>
-                    <div class="nft-orbit-wrap n2"><div class="icon-nft" style="background-image: url('assets/nft2.svg');"></div></div>
-                    <div class="nft-orbit-wrap n3"><div class="icon-nft" style="background-image: url('assets/nft3.svg');"></div></div>
-                    <div class="nft-orbit-wrap n4"><div class="icon-nft" style="background-image: url('assets/nft.svg');"></div></div>
+                        <div class="sun-ticket"></div>
+
+                        <div class="orbit-ring">
+                            <div class="planet-anchor p1">
+                                <div class="planet-nft" style="background-image: url('assets/nft1.svg');"></div>
+                            </div>
+                            <div class="planet-anchor p2">
+                                <div class="planet-nft" style="background-image: url('assets/nft2.svg');"></div>
+                            </div>
+                            <div class="planet-anchor p3">
+                                <div class="planet-nft" style="background-image: url('assets/nft3.svg');"></div>
+                            </div>
+                            <div class="planet-anchor p4">
+                                <div class="planet-nft" style="background-image: url('assets/nft.svg');"></div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
+
+                <h1 class="win-title">EPIC WIN!</h1>
+                <p class="win-desc">You've earned a ticket for the Seasonal Prize Draw!</p>
+                <button class="btn-main" onclick="switchView('viewPrizes')">Show Seasonal Prizes</button>
+                <button class="btn-close" onclick="closeAll()">Close</button>
             </div>
 
-            <h1 class="win-title">EPIC WIN!</h1>
-            <p style="color: rgba(255,255,255,0.7);">You've earned a ticket for the Seasonal Draw!</p>
-            <button class="btn-main">WHAT CAN I WIN?</button>
+            <div id="viewPrizes" class="reward-window">
+                <h2 style="font-family: 'Orbitron'; color: var(--gold); margin-bottom: 20px; letter-spacing: 1px;">PRIZE POOL</h2>
+                <div class="prize-list">
+                    <div class="prize-item">
+                        <div class="prize-icon-wrap" style="background-image: url('assets/nft.svg'); background-size: contain; border-radius: 8px;"></div>
+                        <div class="prize-info">
+                            <b>10x NFT Telegram Gifts</b>
+                            <span>Randomly drawn collectible items</span>
+                        </div>
+                    </div>
+                    <div class="prize-item">
+                        <div class="prize-icon-wrap" style="color: var(--gold);">
+                            <div class="icon-svg mask-star"></div>
+                        </div>
+                        <div class="prize-info">
+                            <b>10x Packs of 100 Stars</b>
+                            <span>Telegram currency rewards</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="#" class="btn-tg" onclick="alert('Redirect to Channel')">Check Channel for Rules</a>
+                <button class="btn-close" onclick="closeAll()">Back to game</button>
+            </div>
+
         </div>
     </div>
 
+    <script>
+        const tg = window.Telegram?.WebApp || {
+            HapticFeedback: { notificationOccurred: (t) => console.log('Haptic Triggered:', t) }
+        };
+
+        function startWinFlow() {
+            document.getElementById('fxOverlay').classList.add('active');
+            switchView('viewWin');
+            tg.HapticFeedback.notificationOccurred('success');
+            spawnConfetti();
+        }
+
+        function switchView(v) {
+            document.querySelectorAll('.reward-window').forEach(w => w.classList.remove('active'));
+            document.getElementById(v).classList.add('active');
+            tg.HapticFeedback.notificationOccurred('light');
+        }
+
+        function closeAll() {
+            document.getElementById('fxOverlay').classList.remove('active');
+        }
+
+        function spawnConfetti() {
+            for (let i = 0; i < 60; i++) {
+                const p = document.createElement('div');
+                p.className = 'p';
+                
+                const inner = document.createElement('div');
+                inner.className = 'icon-svg mask-star';
+                p.appendChild(inner);
+
+                p.style.width = p.style.height = (Math.random() * 10 + 6) + 'px';
+                p.style.left = '50%'; p.style.top = '50%';
+                document.body.appendChild(p);
+
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = Math.random() * 400 + 150;
+                const tx = Math.cos(angle) * velocity;
+                const ty = Math.sin(angle) * velocity;
+                const rot = Math.random() * 720 - 360;
+
+                p.animate([
+                    { transform: 'translate(-50%, -50%) scale(1) rotate(0deg)', opacity: 1 },
+                    { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0) rotate(${rot}deg)`, opacity: 0 }
+                ], {
+                    duration: Math.random() * 800 + 800,
+                    easing: 'cubic-bezier(0, .9, .57, 1)'
+                }).onfinish = () => p.remove();
+            }
+        }
+    </script>
 </body>
 </html>

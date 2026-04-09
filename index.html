@@ -107,17 +107,17 @@
             to { transform: rotateY(360deg); }
         }
 
-        /* ОБЕРТКИ ДЛЯ NFT (РАДИУС ОРБИТЫ) */
+/* ОБЕРТКИ ДЛЯ NFT (РАДИУС ОРБИТЫ И ВОЗВРАТ ЛИЦА) */
         .planet-anchor {
             position: absolute;
             transform-style: preserve-3d;
         }
 
-        /* Раскидываем 4 NFT по кругу (каждые 90 градусов) и отодвигаем на 150px по оси Z */
-        .p1 { transform: rotateY(0deg) translateZ(150px); }
-        .p2 { transform: rotateY(90deg) translateZ(150px); }
-        .p3 { transform: rotateY(180deg) translateZ(150px); }
-        .p4 { transform: rotateY(270deg) translateZ(150px); }
+        /* ТРЮК: поворачиваем -> отодвигаем по Z -> возвращаем поворот обратно */
+        .p1 { transform: rotateY(0deg) translateZ(150px) rotateY(0deg); }
+        .p2 { transform: rotateY(90deg) translateZ(150px) rotateY(-90deg); }
+        .p3 { transform: rotateY(180deg) translateZ(150px) rotateY(-180deg); }
+        .p4 { transform: rotateY(270deg) translateZ(150px) rotateY(-270deg); }
 
         /* САМИ NFT-КАРТИНКИ */
         .planet-nft {
@@ -126,13 +126,14 @@
             margin-left: -30px; margin-top: -30px;
             background-size: contain; background-repeat: no-repeat; background-position: center;
             filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
-            /* Контр-вращение, чтобы они всегда смотрели лицом на нас */
+            /* Контр-вращение орбиты */
             animation: counterSpin 12s infinite linear;
         }
 
+        /* Компенсируем вращение орбиты + возвращаем вертикальный наклон (12deg), чтобы картинки стояли ровно */
         @keyframes counterSpin {
-            from { transform: rotateY(0deg); }
-            to { transform: rotateY(-360deg); }
+            from { transform: rotateY(0deg) rotateX(12deg); }
+            to { transform: rotateY(-360deg) rotateX(12deg); }
         }
 
         /* --- БЛЕСТКИ (Sparkles) --- */

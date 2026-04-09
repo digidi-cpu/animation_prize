@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Digit Game: Ticket & NFT FX</title>
+    <title>Digit Game: 3D Prize Orbit</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg: #05050f;
+            --bg: #030309;
             --primary: #ff6b35;
             --gold: #ffcc00;
             --gold-dark: #b59410;
             --tg-blue: #24A1DE;
+            --silver: #e0e0e0;
         }
 
         body {
@@ -24,91 +25,173 @@
             display: flex; justify-content: center; align-items: center;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
+            /* Establishes global 3D perspective */
+            perspective: 1000px;
         }
 
-        /* --- DEBUG TRIGGER --- */
-        .debug-btn {
-            position: fixed; bottom: 30px; z-index: 9999;
-            background: var(--primary); border: none; color: white;
-            padding: 15px 30px; border-radius: 50px;
-            font-family: 'Orbitron', sans-serif; font-weight: 900;
-            box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
-            cursor: pointer; transition: transform 0.1s;
-        }
-        .debug-btn:active { transform: scale(0.95); }
-
-        /* --- OVERLAY --- */
+        /* --- UI OVERLAY --- */
         .fx-overlay {
             position: fixed; inset: 0;
             background: rgba(0,0,0,0);
             display: flex; justify-content: center; align-items: center;
             z-index: 1000; visibility: hidden;
-            transition: all 0.4s ease;
+            transition: all 0.5s ease;
             backdrop-filter: blur(0px);
         }
         .fx-overlay.active {
             visibility: visible;
-            background: rgba(0,0,0,0.94);
-            backdrop-filter: blur(12px);
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(15px);
         }
 
-        /* --- WINDOWS --- */
-        .window-container { width: 90%; max-width: 350px; position: relative; }
+        .window-container { width: 100%; max-width: 400px; position: relative; }
 
         .reward-window {
             text-align: center; display: none;
-            animation: windowIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: windowIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
         @keyframes windowIn {
-            from { opacity: 0; transform: scale(0.7) translateY(50px); }
+            from { opacity: 0; transform: scale(0.5) translateY(100px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
         .reward-window.active { display: block; }
 
-        /* --- SVG ICON ENGINE --- */
+        /* --- 3D ORBIT SCENE --- */
+        .orbit-scene {
+            width: 100%;
+            height: 250px;
+            margin-bottom: 20px;
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+            /* Perspective for this specific scene, tilted slightly down */
+            perspective: 1000px;
+            perspective-origin: 50% 40%;
+        }
+
+        /* Container that handles the rotation logic */
+        .orbit-wrapper {
+            position: absolute;
+            width: 1px; height: 1px; /* Center point */
+            transform-style: preserve-3d;
+            animation: orbitContainer 10s infinite linear;
+        }
+
+        /* --- THE TICKET (Center, Gradient) --- */
+        .main-ticket {
+            position: absolute;
+            width: 180px; height: 110px;
+            /* Centering itself */
+            left: -90px; top: -55px; 
+            
+            /* Apply Gradient through Mask */
+            background-image: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            
+            mask-image: url('assets/ticket.svg');
+            -webkit-mask-image: url('assets/ticket.svg');
+            mask-repeat: no-repeat; mask-position: center; mask-size: contain;
+            -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; -webkit-mask-size: contain;
+            
+            filter: drop-shadow(0 0 25px rgba(255, 204, 0, 0.6));
+            
+            /* Ensures it stays flat in Z-space but can be passed by NFTs */
+            transform: translateZ(0); 
+            z-index: 10; /* Base Layer */
+        }
+
+        /* --- NFT ITEMS (Orbiting) --- */
+        .nft-item {
+            position: absolute;
+            width: 60px; height: 60px;
+            border-radius: 12px;
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transform-style: preserve-3d;
+            
+            /* Counter-rotation animation to keep them facing the user */
+            animation: counterRotate 10s infinite linear;
+        }
+
+        /* Assigning files and starting positions in the orbit */
+        .nft1 { 
+            background-image: url('assets/nft1.svg'); 
+            /* Position: Pushed out 140px on X (orbit width) */
+            margin-left: -30px; margin-top: -30px; /* Centering */
+            transform: rotateY(0deg) translateX(140px); 
+        }
+        .nft2 { 
+            background-image: url('assets/nft2.svg'); 
+            margin-left: -30px; margin-top: -30px;
+            /* Position: Staggered by 120 degrees */
+            transform: rotateY(120deg) translateX(140px); 
+        }
+        .nft3 { 
+            background-image: url('assets/nft3.svg'); 
+            margin-left: -30px; margin-top: -30px;
+            /* Position: Staggered by 240 degrees */
+            transform: rotateY(240deg) translateX(140px); 
+        }
+
+        /* Keyframes: Main container spins on Y axis */
+        @keyframes orbitContainer {
+            from { transform: rotateX(-5deg) rotateY(0deg); }
+            to { transform: rotateX(-5deg) rotateY(360deg); }
+        }
+
+        /* Keyframes: Items spin negatively to stay facing forward */
+        @keyframes counterRotate {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(-360deg); }
+        }
+
+        /* --- SPARKLES (Light Blinks) --- */
+        .sparkle {
+            position: absolute;
+            width: 15px; height: 15px;
+            color: white;
+            opacity: 0;
+            mask-image: url('assets/star.svg');
+            -webkit-mask-image: url('assets/star.svg');
+            background-color: currentColor;
+            mask-size: contain; -webkit-mask-size: contain;
+            mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
+            animation: sparklePulse 2s infinite;
+        }
+
+        @keyframes sparklePulse {
+            0%, 100% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1) rotate(90deg); opacity: 0.8; filter: blur(1px); }
+        }
+
+        /* --- TEXTS & PRIZES --- */
+        .win-title {
+            font-family: 'Orbitron', sans-serif; font-size: 2.2rem;
+            color: var(--gold); margin: 0;
+            text-shadow: 0 0 20px rgba(255, 204, 0, 0.6);
+            letter-spacing: 1px;
+        }
+
+        .win-desc { color: rgba(255,255,255,0.7); margin: 10px 0 30px; line-height: 1.5; font-size: 1rem; }
+
+        .prize-list {
+            background: rgba(255,255,255,0.03); border-radius: 24px;
+            padding: 20px; text-align: left;
+            border: 1px solid rgba(255,255,255,0.08);
+            margin-bottom: 20px;
+        }
+        .prize-item { display: flex; align-items: center; gap: 16px; margin-bottom: 15px; }
+        .prize-item:last-child { margin-bottom: 0; }
+        
+        .prize-icon-wrap { width: 36px; height: 36px; flex-shrink: 0; }
         .icon-svg {
             display: inline-block; width: 100%; height: 100%;
             background-color: currentColor;
             mask-repeat: no-repeat; mask-position: center; mask-size: contain;
             -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; -webkit-mask-size: contain;
         }
-        .mask-ticket { -webkit-mask-image: url('assets/ticket.svg'); mask-image: url('assets/ticket.svg'); }
         .mask-star { -webkit-mask-image: url('assets/star.svg'); mask-image: url('assets/star.svg'); }
 
-        /* Full-color NFT Icon */
-        .icon-nft {
-            width: 100%; height: 100%;
-            background-image: url('assets/nft.svg');
-            background-size: contain; background-repeat: no-repeat; background-position: center;
-        }
-
-        /* --- UI ELEMENTS --- */
-        .ticket-visual {
-            width: 180px; height: 110px; margin: 0 auto 30px;
-            color: var(--gold);
-            filter: drop-shadow(0 0 20px rgba(255, 204, 0, 0.5));
-            animation: float 4s infinite ease-in-out;
-        }
-
-        .win-title {
-            font-family: 'Orbitron', sans-serif; font-size: 2.2rem;
-            color: var(--gold); margin: 0;
-            text-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
-        }
-
-        .win-desc { color: rgba(255,255,255,0.7); margin: 15px 0 35px; line-height: 1.5; }
-
-        .prize-list {
-            background: rgba(255,255,255,0.03); border-radius: 24px;
-            padding: 24px; text-align: left;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        .prize-item { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-        .prize-item:last-child { margin-bottom: 0; }
-        
-        .prize-icon-wrap { width: 42px; height: 42px; flex-shrink: 0; }
-        .prize-info b { display: block; color: var(--gold); font-size: 1.1rem; }
-        .prize-info span { font-size: 0.85rem; color: rgba(255,255,255,0.4); }
+        .prize-info b { display: block; color: var(--gold); font-size: 1rem; }
+        .prize-info span { font-size: 0.8rem; color: rgba(255,255,255,0.4); }
 
         /* --- BUTTONS --- */
         .btn-main {
@@ -116,6 +199,7 @@
             color: var(--gold); padding: 16px; border-radius: 16px;
             font-family: 'Orbitron', sans-serif; font-weight: 900;
             text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+            letter-spacing: 1px;
         }
         .btn-main:active { background: rgba(255,204,0,0.1); transform: scale(0.98); }
 
@@ -124,50 +208,68 @@
             border: none; padding: 16px; border-radius: 16px;
             font-family: 'Orbitron', sans-serif; font-weight: 900;
             text-decoration: none; display: block; box-sizing: border-box;
-            text-transform: uppercase; margin-top: 20px; text-align: center;
+            text-transform: uppercase; text-align: center;
+            letter-spacing: 1px;
         }
 
         .btn-close {
-            margin-top: 25px; background: none; border: none;
+            margin-top: 20px; background: none; border: none;
             color: rgba(255,255,255,0.3); text-decoration: underline; cursor: pointer;
+            font-size: 0.85rem;
         }
 
-        /* --- PARTICLES --- */
+        /* --- PARTICLES (Confetti) --- */
         .p { position: absolute; pointer-events: none; z-index: 1001; color: var(--gold); }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(-2deg); }
-            50% { transform: translateY(-15px) rotate(3deg); }
+        /* --- DEBUG TRIGGER --- */
+        .debug-btn {
+            position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+            background: var(--primary); border: none; color: white;
+            padding: 12px 24px; border-radius: 50px;
+            font-family: 'Orbitron', sans-serif; font-weight: 900;
+            cursor: pointer; opacity: 0.7;
         }
     </style>
 </head>
 <body>
 
-    <button class="debug-btn" onclick="startWinFlow()">TEST ANIMATION 🎟️</button>
+    <button class="debug-btn" onclick="startWinFlow()">TEST FX 🎟️</button>
 
     <div id="fxOverlay" class="fx-overlay">
         <div class="window-container">
             
             <div id="viewWin" class="reward-window">
-                <div class="ticket-visual">
-                    <div class="icon-svg mask-ticket"></div>
+                
+                <div class="orbit-scene">
+                    
+                    <div class="sparkle" style="top: 20%; left: 20%; animation-delay: 0s;"></div>
+                    <div class="sparkle" style="top: 70%; left: 80%; animation-delay: 0.5s;"></div>
+                    <div class="sparkle" style="top: 50%; left: 10%; animation-delay: 1s;"></div>
+                    <div class="sparkle" style="top: 10%; left: 70%; animation-delay: 1.5s; color: var(--silver);"></div>
+
+                    <div class="main-ticket"></div>
+
+                    <div class="orbit-wrapper">
+                        <div class="nft-item nft1"></div>
+                        <div class="nft-item nft2"></div>
+                        <div class="nft-item nft3"></div>
+                    </div>
                 </div>
+
                 <h1 class="win-title">EPIC WIN!</h1>
                 <p class="win-desc">You've earned a ticket for the Seasonal Prize Draw!</p>
-                <button class="btn-main" onclick="switchView('viewPrizes')">What can I win?</button>
+                <button class="btn-main" onclick="switchView('viewPrizes')">Show Seasonal Prizes</button>
                 <button class="btn-close" onclick="closeAll()">Close</button>
             </div>
 
             <div id="viewPrizes" class="reward-window">
-                <h2 style="font-family: 'Orbitron'; color: var(--gold); margin-bottom: 25px; letter-spacing: 1px;">SEASONAL PRIZES</h2>
+                <h2 style="font-family: 'Orbitron'; color: var(--gold); margin-bottom: 20px; letter-spacing: 1px;">PRIZE POOL</h2>
                 <div class="prize-list">
                     <div class="prize-item">
-                        <div class="prize-icon-wrap">
-                            <div class="icon-nft"></div>
-                        </div>
+                        <div class="prize-icon-wrap" style="background-image: url('assets/nft1.svg'); background-size: contain; border-radius: 8px;"></div>
                         <div class="prize-info">
                             <b>10x NFT Telegram Gifts</b>
-                            <span>Exclusive collectible items</span>
+                            <span>Randomly drawn collectible items</span>
                         </div>
                     </div>
                     <div class="prize-item">
@@ -181,7 +283,7 @@
                     </div>
                 </div>
                 
-                <a href="#" class="btn-tg" onclick="alert('Redirecting to Channel...')">More info in Channel</a>
+                <a href="#" class="btn-tg" onclick="alert('Channel link...')">Check Channel for Rules</a>
                 <button class="btn-close" onclick="closeAll()">Back to game</button>
             </div>
 
@@ -189,24 +291,26 @@
     </div>
 
     <script>
+        // Telegram API Mock
         const tg = window.Telegram?.WebApp || {
-            HapticFeedback: { notificationOccurred: (t) => console.log('Haptic Triggered:', t) }
+            HapticFeedback: { notificationOccurred: (t) => console.log('Haptic:', t) }
         };
 
         function startWinFlow() {
             document.getElementById('fxOverlay').classList.add('active');
             switchView('viewWin');
             
-            // Trigger Haptic
+            // Big success vibration
             tg.HapticFeedback.notificationOccurred('success');
             
-            // Launch Confetti
-            spawnParticles();
+            // One-time confetti explosion
+            spawnConfetti();
         }
 
         function switchView(v) {
             document.querySelectorAll('.reward-window').forEach(w => w.classList.remove('active'));
             document.getElementById(v).classList.add('active');
+            // Small tick vibration when switching
             tg.HapticFeedback.notificationOccurred('light');
         }
 
@@ -214,18 +318,17 @@
             document.getElementById('fxOverlay').classList.remove('active');
         }
 
-        function spawnParticles() {
-            for (let i = 0; i < 65; i++) {
+        // Particle explosion logic (remains the same, creates "juice")
+        function spawnConfetti() {
+            for (let i = 0; i < 60; i++) {
                 const p = document.createElement('div');
                 p.className = 'p';
                 
-                // Use the official Star asset for particles
                 const inner = document.createElement('div');
                 inner.className = 'icon-svg mask-star';
                 p.appendChild(inner);
 
-                // Random size for variety
-                const size = Math.random() * 12 + 8;
+                const size = Math.random() * 10 + 6;
                 p.style.width = p.style.height = size + 'px';
                 
                 p.style.left = '50%';
@@ -233,7 +336,7 @@
                 document.body.appendChild(p);
 
                 const angle = Math.random() * Math.PI * 2;
-                const velocity = Math.random() * 450 + 150;
+                const velocity = Math.random() * 400 + 150;
                 const tx = Math.cos(angle) * velocity;
                 const ty = Math.sin(angle) * velocity;
                 const rot = Math.random() * 720 - 360;
@@ -242,7 +345,7 @@
                     { transform: 'translate(-50%, -50%) scale(1) rotate(0deg)', opacity: 1 },
                     { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0) rotate(${rot}deg)`, opacity: 0 }
                 ], {
-                    duration: Math.random() * 800 + 1000,
+                    duration: Math.random() * 800 + 800,
                     easing: 'cubic-bezier(0, .9, .57, 1)'
                 }).onfinish = () => p.remove();
             }

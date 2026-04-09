@@ -46,31 +46,35 @@
         .reward-window.active { display: block; }
 
         /* =========================================
-           ИСПРАВЛЕННАЯ 3D СЦЕНА
+           ИДЕАЛЬНО ОТЦЕНТРИРОВАННАЯ 3D СЦЕНА
            ========================================= */
         .orbit-scene {
             width: 100%; height: 250px; margin-bottom: 20px;
-            position: relative; display: flex; justify-content: center; align-items: center;
-            perspective: 1000px; /* Глубина сцены */
+            position: relative; /* Теперь это строгая точка отсчета */
+            perspective: 1000px; 
         }
 
-        /* Обертка орбиты (наклоняем её немного на себя, чтобы овал был лучше виден) */
+        /* Жесткий центр для орбиты */
         .orbit-wrapper {
-            position: absolute; width: 1px; height: 1px;
+            position: absolute; 
+            top: 50%; left: 50%; /* Жестко в центре */
+            width: 0; height: 0; /* Делаем точку нулевого размера */
             transform-style: preserve-3d;
             transform: rotateX(-10deg); 
+            z-index: 5;
         }
 
-        /* Обертка билета (держит его в 3D центре) */
+        /* Жесткий центр для якоря билета */
         .main-ticket-anchor {
             position: absolute;
-            left: -90px; top: -55px; 
+            top: 50%; left: 50%; /* Жестко в центре */
             width: 180px; height: 110px;
+            margin-left: -90px; margin-top: -55px; /* Сдвигаем на половину ширины/высоты */
             transform: translateZ(0); 
             z-index: 10;
         }
 
-        /* Сам билет (парит внутри центра) */
+        /* Сам билет (парит внутри якоря) */
         .main-ticket {
             width: 100%; height: 100%;
             background-image: linear-gradient(135deg, var(--gold), var(--gold-dark));
@@ -78,36 +82,39 @@
             mask-repeat: no-repeat; mask-position: center; mask-size: contain;
             -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; -webkit-mask-size: contain;
             filter: drop-shadow(0 0 25px rgba(255, 204, 0, 0.6));
-            animation: float 4s infinite ease-in-out; /* Вернули анимацию парения! */
+            animation: float 4s infinite ease-in-out; 
         }
 
         /* NFT Элементы на орбите */
         .nft-item {
             position: absolute;
             width: 65px; height: 65px;
-            margin-left: -32px; margin-top: -32px; /* Идеальное центрирование */
+            margin-left: -32px; margin-top: -32px; /* Центрируем относительно 0,0 */
             background-size: contain; background-repeat: no-repeat; background-position: center;
             filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
         }
 
-        /* Привязываем картинки и назначаем правильные анимации */
+        /* 4 NFT элемента: шаг орбиты 90 градусов */
         .nft1 { background-image: url('assets/nft1.svg'); animation: orbit1 12s infinite linear; }
         .nft2 { background-image: url('assets/nft2.svg'); animation: orbit2 12s infinite linear; }
         .nft3 { background-image: url('assets/nft3.svg'); animation: orbit3 12s infinite linear; }
+        .nft4 { background-image: url('assets/nft.svg');  animation: orbit4 12s infinite linear; } /* Тот самый 4-й */
 
-        /* ИДЕАЛЬНАЯ МАТЕМАТИКА ОРБИТЫ 
-           rotateY крутит вектор -> translateX отодвигает на радиус -> rotateY(-A) возвращает лицо к камере */
         @keyframes orbit1 {
             from { transform: rotateY(0deg) translateX(140px) rotateY(0deg); }
             to   { transform: rotateY(360deg) translateX(140px) rotateY(-360deg); }
         }
         @keyframes orbit2 {
-            from { transform: rotateY(120deg) translateX(140px) rotateY(-120deg); }
-            to   { transform: rotateY(480deg) translateX(140px) rotateY(-480deg); }
+            from { transform: rotateY(90deg) translateX(140px) rotateY(-90deg); }
+            to   { transform: rotateY(450deg) translateX(140px) rotateY(-450deg); }
         }
         @keyframes orbit3 {
-            from { transform: rotateY(240deg) translateX(140px) rotateY(-240deg); }
-            to   { transform: rotateY(600deg) translateX(140px) rotateY(-600deg); }
+            from { transform: rotateY(180deg) translateX(140px) rotateY(-180deg); }
+            to   { transform: rotateY(540deg) translateX(140px) rotateY(-540deg); }
+        }
+        @keyframes orbit4 {
+            from { transform: rotateY(270deg) translateX(140px) rotateY(-270deg); }
+            to   { transform: rotateY(630deg) translateX(140px) rotateY(-630deg); }
         }
 
         @keyframes float {
@@ -208,6 +215,7 @@
                         <div class="nft-item nft1"></div>
                         <div class="nft-item nft2"></div>
                         <div class="nft-item nft3"></div>
+                        <div class="nft-item nft4"></div>
                     </div>
                 </div>
 
@@ -221,7 +229,7 @@
                 <h2 style="font-family: 'Orbitron'; color: var(--gold); margin-bottom: 20px;">PRIZE POOL</h2>
                 <div class="prize-list">
                     <div class="prize-item">
-                        <div class="prize-icon-wrap" style="background-image: url('assets/nft1.svg'); background-size: contain; border-radius: 8px;"></div>
+                        <div class="prize-icon-wrap" style="background-image: url('assets/nft.svg'); background-size: contain; border-radius: 8px;"></div>
                         <div class="prize-info">
                             <b>10x NFT Telegram Gifts</b>
                             <span>Randomly drawn collectible items</span>
